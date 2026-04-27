@@ -1,0 +1,395 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Polymer Bridge API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: bridge
+    description: Bridge operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /bridge/contracts:
+    get:
+      operationId: getBridgeContracts
+      tags: [bridge]
+      summary: Get deployed contract addresses
+      description: Returns contract addresses for Base and Plume chains
+      responses:
+        "200":
+          description: Contract addresses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BridgeContracts"
+
+  /bridge/transactions:
+    post:
+      operationId: createBridgeTransaction
+      tags: [bridge]
+      summary: Record a bridge transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBridgeTransactionBody"
+      responses:
+        "201":
+          description: Transaction recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BridgeTransaction"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /bridge/transactions/{address}:
+    get:
+      operationId: getBridgeTransactionsByAddress
+      tags: [bridge]
+      summary: Get bridge transactions for an address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            description: Ethereum address
+      responses:
+        "200":
+          description: List of bridge transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BridgeTransaction"
+
+  /bridge/transactions/{address}/stats:
+    get:
+      operationId: getBridgeStats
+      tags: [bridge]
+      summary: Get bridge stats for an address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bridge statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BridgeStats"
+
+  /bridge/request-proof:
+    post:
+      operationId: requestPolymerProof
+      tags: [bridge]
+      summary: Request a Polymer proof for a deposit transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestProofBody"
+      responses:
+        "200":
+          description: Proof job ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofJobResponse"
+        "400":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /bridge/proof-status/{jobId}:
+    get:
+      operationId: getProofStatus
+      tags: [bridge]
+      summary: Get the status of a Polymer proof job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Proof status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProofStatusResponse"
+
+  /bridge/recent:
+    get:
+      operationId: getRecentBridgeTransactions
+      tags: [bridge]
+      summary: Get recent bridge transactions across all users
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Recent transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BridgeTransaction"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    BridgeContracts:
+      type: object
+      properties:
+        base:
+          type: object
+          properties:
+            chainId:
+              type: integer
+            contractAddress:
+              type: string
+            rpcUrl:
+              type: string
+            explorerUrl:
+              type: string
+          required: [chainId, contractAddress, rpcUrl, explorerUrl]
+        plume:
+          type: object
+          properties:
+            chainId:
+              type: integer
+            contractAddress:
+              type: string
+            rpcUrl:
+              type: string
+            explorerUrl:
+              type: string
+          required: [chainId, contractAddress, rpcUrl, explorerUrl]
+        polymerProver:
+          type: string
+          description: CrossL2Prover contract address (same on all chains)
+      required: [base, plume, polymerProver]
+
+    BridgeTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        txHash:
+          type: string
+        srcChainId:
+          type: integer
+        destChainId:
+          type: integer
+        sender:
+          type: string
+        recipient:
+          type: string
+        amount:
+          type: string
+          description: Amount in wei as string
+        nonce:
+          type: string
+        status:
+          type: string
+          enum: [pending, proving, proven, claimed, failed]
+        blockNumber:
+          type: integer
+          nullable: true
+        logIndex:
+          type: integer
+          nullable: true
+        globalLogIndex:
+          type: integer
+          nullable: true
+        polymerJobId:
+          type: string
+          nullable: true
+        proof:
+          type: string
+          nullable: true
+        claimTxHash:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - txHash
+        - srcChainId
+        - destChainId
+        - sender
+        - recipient
+        - amount
+        - nonce
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateBridgeTransactionBody:
+      type: object
+      properties:
+        txHash:
+          type: string
+        srcChainId:
+          type: integer
+        destChainId:
+          type: integer
+        sender:
+          type: string
+        recipient:
+          type: string
+        amount:
+          type: string
+        nonce:
+          type: string
+        blockNumber:
+          type: integer
+        logIndex:
+          type: integer
+        globalLogIndex:
+          type: integer
+      required:
+        - txHash
+        - srcChainId
+        - destChainId
+        - sender
+        - recipient
+        - amount
+        - nonce
+
+    RequestProofBody:
+      type: object
+      properties:
+        txHash:
+          type: string
+          description: Transaction hash of the deposit on the source chain
+        srcChainId:
+          type: integer
+          description: Source chain ID
+        blockNumber:
+          type: integer
+          description: Block number of the deposit transaction
+        globalLogIndex:
+          type: integer
+          description: Global log index of the Deposited event in the block
+      required:
+        - txHash
+        - srcChainId
+        - blockNumber
+        - globalLogIndex
+
+    ProofJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        txHash:
+          type: string
+        status:
+          type: string
+          enum: [pending, complete, error]
+      required:
+        - jobId
+        - txHash
+        - status
+
+    ProofStatusResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [pending, complete, error]
+        proof:
+          type: string
+          nullable: true
+          description: Hex-encoded proof bytes ready for on-chain submission
+      required:
+        - jobId
+        - status
+
+    BridgeStats:
+      type: object
+      properties:
+        totalTransactions:
+          type: integer
+        totalVolume:
+          type: string
+          description: Total bridged amount in wei as string
+        pendingCount:
+          type: integer
+        completedCount:
+          type: integer
+        baseToPlume:
+          type: integer
+        plumeToBase:
+          type: integer
+      required:
+        - totalTransactions
+        - totalVolume
+        - pendingCount
+        - completedCount
+        - baseToPlume
+        - plumeToBase
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

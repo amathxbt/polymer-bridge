@@ -1,0 +1,56 @@
+modules = ["nodejs-24"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+integrations = ["github:1.0.0"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3002
+
+[[ports]]
+localPort = 20043
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+BASE_RPC_URL = "https://mainnet.base.org"
+PLUME_RPC_URL = "https://rpc.plume.org"
+BASE_CHAIN_ID = "8453"
+PLUME_CHAIN_ID = "98866"
+CROSS_L2_PROVER = "0x95ccEAE71605c5d97A0AC0EA13013b058729d075"
+BASE_BRIDGE_ADDRESS = "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14"
+PLUME_BRIDGE_ADDRESS = "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14"
+DEPLOYER_PRIVATE_KEY = "0xf3dca2087cabfa4824a3ea665062168a84ef94154df450d2ad8bd6289bc5691c"
+POLYMER_API_KEY = "amathxbt1234"
+VITE_WALLETCONNECT_PROJECT_ID = "a0f920e8-a3c2-47eb-bd87-28a667217b41"
+VITE_BASE_BRIDGE_ADDRESS = "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14"
+VITE_PLUME_BRIDGE_ADDRESS = "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14"
+
+[nix]
+channel = "stable-25_05"

@@ -1,0 +1,5 @@
+{
+  "_comment": "Update these after deploying. Run: npm run deploy:base then npm run deploy:plume",
+  "base": "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14",
+  "plume": "0x39d567809fc62Fa2e0cDCa322B22cBd07B8F5d14"
+}
